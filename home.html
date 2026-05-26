@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三维体验馆 · 3D Experiences</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --char-900:#15120e;--char-800:#1d1812;--char-700:#2a231b;
+    --beige:#e8dfd3;--beige2:#f6f1e9;--bronze:#9c7a4f;--line:rgba(232,223,211,.14);
+    --ease:cubic-bezier(.22,.61,.36,1);
+  }
+  html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+  body{background:var(--char-900);color:var(--beige);font-family:'Jost',sans-serif;min-height:100vh;overflow-x:hidden;
+    background-image:radial-gradient(120% 80% at 80% -10%,rgba(156,122,79,.18),transparent 60%);}
+  ::selection{background:var(--bronze);color:var(--char-900)}
+  body::after{content:"";position:fixed;inset:0;z-index:9000;pointer-events:none;mix-blend-mode:overlay;opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+  .serif{font-family:'Cormorant Garamond',serif;font-weight:300}
+  .eyebrow{font-size:.72rem;letter-spacing:.42em;text-transform:uppercase;opacity:.65}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 clamp(1.4rem,5vw,4rem)}
+
+  nav{display:flex;align-items:center;justify-content:space-between;padding:1.8rem 0}
+  .brand{font-family:'Cormorant Garamond',serif;font-size:1.4rem;letter-spacing:.32em;font-weight:500;padding-left:.32em}
+  nav .tag{font-size:.68rem;letter-spacing:.26em;text-transform:uppercase;opacity:.55}
+
+  header.hero{padding:clamp(3rem,9vh,7rem) 0 clamp(2.5rem,6vh,4.5rem)}
+  header .eyebrow{color:var(--bronze)}
+  header h1{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(2.8rem,8.5vw,7rem);line-height:.98;letter-spacing:-.01em;margin:1.1rem 0 1.4rem;max-width:15ch}
+  header h1 em{font-style:italic;color:var(--beige2)}
+  header p{max-width:46ch;line-height:1.85;opacity:.74;font-weight:300;font-size:1.02rem}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(1rem,2vw,1.6rem);padding-bottom:5rem}
+  @media(max-width:900px){.grid{grid-template-columns:1fr 1fr}}
+  @media(max-width:620px){.grid{grid-template-columns:1fr}}
+
+  .card{position:relative;display:flex;flex-direction:column;justify-content:space-between;
+    min-height:clamp(340px,46vh,460px);padding:1.7rem 1.6rem;border:1px solid var(--line);border-radius:4px;
+    text-decoration:none;color:var(--beige);overflow:hidden;isolation:isolate;
+    transition:transform .5s var(--ease),border-color .5s var(--ease),box-shadow .5s var(--ease);
+    background:linear-gradient(160deg,var(--char-700),var(--char-900));}
+  .card::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.9;transition:opacity .5s var(--ease),transform .8s var(--ease)}
+  .card.c1::before{background:linear-gradient(150deg,#2c2418,#16120d 70%),radial-gradient(80% 60% at 70% 20%,rgba(156,122,79,.4),transparent)}
+  .card.c2::before{background:linear-gradient(150deg,#1a2230,#121017 72%),radial-gradient(80% 60% at 30% 15%,rgba(120,150,200,.28),transparent)}
+  .card.c3::before{background:linear-gradient(150deg,#2a2218,#171410 72%),radial-gradient(80% 70% at 60% 25%,rgba(211,191,159,.3),transparent)}
+  .card:hover{transform:translateY(-8px);border-color:rgba(156,122,79,.6);box-shadow:0 40px 70px -40px rgba(0,0,0,.8)}
+  .card:hover::before{transform:scale(1.06)}
+  .card .num{font-family:'Cormorant Garamond',serif;font-size:1rem;letter-spacing:.2em;opacity:.55}
+  .card .icon{position:absolute;top:1.5rem;right:1.5rem;width:42px;height:42px;opacity:.5;transition:opacity .5s,transform .5s var(--ease)}
+  .card:hover .icon{opacity:.95;transform:translate(2px,-2px)}
+  .card .icon svg{width:100%;height:100%;fill:none;stroke:var(--beige);stroke-width:1.2}
+  .card .body h2{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:clamp(1.8rem,3vw,2.5rem);line-height:1.02}
+  .card .body .en{font-size:.7rem;letter-spacing:.28em;text-transform:uppercase;opacity:.55;margin-top:.5rem}
+  .card .body p{font-size:.9rem;line-height:1.7;opacity:.78;margin-top:1rem;font-weight:300;max-width:32ch}
+  .card .foot{display:flex;align-items:center;justify-content:space-between;margin-top:1.6rem}
+  .card .tags{display:flex;gap:.4rem;flex-wrap:wrap}
+  .card .tags span{font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;opacity:.6;border:1px solid var(--line);padding:.3rem .5rem;border-radius:2px}
+  .card .enter{font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;display:flex;align-items:center;gap:.5rem;color:var(--bronze)}
+  .card .enter .arr{transition:transform .4s var(--ease)}
+  .card:hover .enter .arr{transform:translateX(5px)}
+
+  footer{border-top:1px solid var(--line);padding:2rem 0 3rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;
+    font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;opacity:.5}
+
+  [data-r]{opacity:0;transform:translateY(26px);transition:opacity 1s var(--ease),transform 1s var(--ease)}
+  .ready [data-r]{opacity:1;transform:none;transition-delay:var(--d,0s)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav data-r>
+    <div class="brand">3D · STUDIO</div>
+    <div class="tag">实时三维 · Real-time</div>
+  </nav>
+
+  <header class="hero">
+    <span class="eyebrow" data-r style="--d:.05s">Portfolio · 作品集</span>
+    <h1 class="serif" data-r style="--d:.15s">走进<em>每一个</em><br>空间</h1>
+    <p data-r style="--d:.3s">在浏览器里即可体验的沉浸式三维作品集——第一人称漫游、深度视差、滚动叙事展厅。点开任意一张卡片进入。</p>
+  </header>
+
+  <div class="grid">
+    <a class="card c1" href="viewer-3d.html" data-r style="--d:.4s">
+      <div class="num">01</div>
+      <span class="icon"><svg viewBox="0 0 40 40"><path d="M6 34 L20 6 L34 34 Z M14 34 L14 22 L26 22 L26 34"/></svg></span>
+      <div class="body">
+        <h2 class="serif">实时三维漫游</h2>
+        <div class="en">Real-time Walkthrough</div>
+        <p>第一人称走进 3D 空间：昼夜光照、室内灯光、星空、碰撞，电脑与手机都能玩。</p>
+      </div>
+      <div class="foot">
+        <div class="tags"><span>Three.js</span><span>WebGL</span><span>实时</span></div>
+        <span class="enter">进入 <span class="arr">→</span></span>
+      </div>
+    </a>
+
+    <a class="card c2" href="depth-3d.html" data-r style="--d:.5s">
+      <div class="num">02</div>
+      <span class="icon"><svg viewBox="0 0 40 40"><rect x="7" y="7" width="26" height="26" rx="2"/><path d="M13 13 L27 27 M27 13 L13 27"/></svg></span>
+      <div class="body">
+        <h2 class="serif">深度 3D 照片</h2>
+        <div class="en">Depth Photo</div>
+        <p>一张图配深度，拖动 / 滑动就能看进画面的立体纵深，像 3D 照片。</p>
+      </div>
+      <div class="foot">
+        <div class="tags"><span>WebGL</span><span>Depth</span></div>
+        <span class="enter">进入 <span class="arr">→</span></span>
+      </div>
+    </a>
+
+    <a class="card c3" href="index.html" data-r style="--d:.6s">
+      <div class="num">03</div>
+      <span class="icon"><svg viewBox="0 0 40 40"><path d="M7 33 L7 9 L20 9 M33 33 L33 9 L20 9 M7 21 L33 21"/></svg></span>
+      <div class="body">
+        <h2 class="serif">沉浸式展厅</h2>
+        <div class="en">Immersive Gallery</div>
+        <p>滚动叙事、视差、SVG 路径动画的奢侈品展厅页面，每个房间一屏。</p>
+      </div>
+      <div class="foot">
+        <div class="tags"><span>CSS</span><span>Scroll-snap</span></div>
+        <span class="enter">进入 <span class="arr">→</span></span>
+      </div>
+    </a>
+  </div>
+
+  <footer data-r>
+    <span>© <span id="yr"></span> 3D Studio</span>
+    <span>Built with Three.js · WebGL</span>
+  </footer>
+</div>
+<script>
+  document.getElementById('yr').textContent=new Date().getFullYear();
+  addEventListener('load',()=>document.body.classList.add('ready'));
+</script>
+</body>
+</html>
