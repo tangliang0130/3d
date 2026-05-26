@@ -51,6 +51,23 @@
   .tod button:hover,.views button:hover{background:rgba(156,122,79,.35)}
   .tod button.on,.views button.on{background:rgba(156,122,79,.55);border-color:var(--bronze);color:var(--beige2)}
   body.walk .tod,body.walk .views{display:none}
+  /* on-screen joystick + exit for touch devices */
+  .joystick{position:fixed;left:6vw;bottom:9vh;width:120px;height:120px;border-radius:50%;z-index:7;display:none;
+    border:1px solid rgba(232,223,211,.35);background:rgba(20,16,12,.32);backdrop-filter:blur(4px);touch-action:none}
+  .joy-thumb{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;
+    background:rgba(232,223,211,.55);border:1px solid rgba(232,223,211,.7)}
+  .exitwalk{position:fixed;right:6vw;bottom:10vh;z-index:7;display:none;font-family:'Jost',sans-serif;
+    font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:var(--beige);
+    background:rgba(20,16,12,.6);border:1px solid rgba(232,223,211,.32);padding:.7rem 1rem;border-radius:3px}
+  body.mwalk .joystick,body.mwalk .exitwalk,body.mwalk .crosshair{display:block}
+  @media (max-width: 680px){
+    .badge,.title,.hint{display:none}
+    .views{top:.6rem;left:50%;transform:translateX(-50%);gap:.3rem}
+    .tod{top:3.0rem;right:auto;left:50%;transform:translateX(-50%);gap:.3rem}
+    .tod button,.views button{font-size:.56rem;letter-spacing:.05em;padding:.42rem .5rem}
+    .btn{bottom:1rem;font-size:.66rem;padding:.7rem 1.1rem}
+    body.walk .fphint{display:none}
+  }
 </style>
 <script type="importmap">
 { "imports": {
@@ -83,6 +100,8 @@
   <button class="btn" id="walkBtn">进入漫游 · Walk (WASD)</button>
   <div class="crosshair"></div>
   <div class="fphint">W·A·S·D 移动　·　鼠标 看　·　Shift 跑　·　1/2/3 昼夜　·　ESC 退出</div>
+  <div class="joystick" id="joy"><div class="joy-thumb" id="joyThumb"></div></div>
+  <button class="exitwalk" id="exitWalk">退出漫游</button>
   <div class="loader" id="loader">
     <div class="ring"></div>
     <div class="pct" id="pct">0%</div>
@@ -234,7 +253,62 @@ function resetPlayer(){
 }
 addEventListener('keydown', e => { keys[e.code] = true; });
 addEventListener('keyup',   e => { keys[e.code] = false; });
-document.getElementById('walkBtn').addEventListener('click', () => { resetPlayer(); fp.lock(); });
+// touch devices (phones/tablets) have no Pointer Lock -> use on-screen joystick + drag-to-look
+const isTouch = matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
+let mobileWalk = false, mvX = 0, mvY = 0, yaw = 0, pitch = 0;
+let lookId = null, lookX = 0, lookY = 0, joyId = null, joyCx = 0, joyCy = 0;
+const JOY_R = 60;
+const joyEl = document.getElementById('joy'), joyThumb = document.getElementById('joyThumb');
+
+document.getElementById('walkBtn').addEventListener('click', () => {
+  resetPlayer();
+  if (isTouch) enterMobileWalk(); else fp.lock();
+});
+document.getElementById('exitWalk').addEventListener('click', exitMobileWalk);
+
+function enterMobileWalk(){
+  mobileWalk = true; fpActive = true; controls.enabled = false; controls.autoRotate = false;
+  const e = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ'); yaw = e.y; pitch = e.x;
+  document.body.classList.add('walk', 'mwalk');
+}
+function exitMobileWalk(){
+  mobileWalk = false; fpActive = false; controls.enabled = true; mvX = mvY = 0;
+  document.body.classList.remove('walk', 'mwalk');
+  const f = forwardVec(); controls.target.copy(camera.position).add(f.multiplyScalar(H * 3)); controls.update();
+}
+function updateJoy(x, y){
+  let dx = x - joyCx, dy = y - joyCy; const d = Math.hypot(dx, dy), m = Math.min(d, JOY_R);
+  if (d > 0){ dx = dx / d * m; dy = dy / d * m; }
+  joyThumb.style.transform = `translate(${dx}px, ${dy}px)`;
+  mvX = dx / JOY_R; mvY = -dy / JOY_R;     // strafe / forward
+}
+canvas.addEventListener('touchstart', e => {
+  if (!mobileWalk) return;
+  const r = joyEl.getBoundingClientRect();
+  for (const t of e.changedTouches){
+    if (t.clientX < innerWidth * 0.5 && joyId === null){ joyId = t.identifier; joyCx = r.left + r.width/2; joyCy = r.top + r.height/2; updateJoy(t.clientX, t.clientY); }
+    else if (lookId === null){ lookId = t.identifier; lookX = t.clientX; lookY = t.clientY; }
+  }
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  if (!mobileWalk) return; e.preventDefault();
+  for (const t of e.changedTouches){
+    if (t.identifier === joyId) updateJoy(t.clientX, t.clientY);
+    else if (t.identifier === lookId){
+      yaw -= (t.clientX - lookX) * 0.005; pitch -= (t.clientY - lookY) * 0.005;
+      pitch = Math.max(-1.3, Math.min(1.3, pitch)); lookX = t.clientX; lookY = t.clientY;
+    }
+  }
+}, { passive: false });
+function endTouch(e){
+  for (const t of e.changedTouches){
+    if (t.identifier === joyId){ joyId = null; mvX = mvY = 0; joyThumb.style.transform = 'translate(0,0)'; }
+    if (t.identifier === lookId) lookId = null;
+  }
+}
+canvas.addEventListener('touchend', endTouch);
+canvas.addEventListener('touchcancel', endTouch);
+
 fp.addEventListener('lock', () => {
   fpActive = true; controls.enabled = false; controls.autoRotate = false;
   document.body.classList.add('walk');
@@ -344,14 +418,21 @@ function animate(){
   if (mixer) mixer.update(dt);
   if (autoCycle) setTimeOfDay(tod + dt * 0.02);
   if (fpActive && playerCapsule){
+    if (mobileWalk) camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
+    let mf = 0, ms = 0;
+    if (mobileWalk){ mf = mvY; ms = mvX; }
+    else {
+      if (keys['KeyW']||keys['ArrowUp'])    mf += 1;
+      if (keys['KeyS']||keys['ArrowDown'])  mf -= 1;
+      if (keys['KeyD']||keys['ArrowRight']) ms += 1;
+      if (keys['KeyA']||keys['ArrowLeft'])  ms -= 1;
+    }
     const sub = Math.min(0.05, dt) / STEPS;        // sub-step to avoid tunnelling
     for (let s = 0; s < STEPS; s++){
       const run = (keys['ShiftLeft']||keys['ShiftRight']) ? 2.2 : 1;
       const accel = (playerOnFloor ? ACCEL_GROUND : ACCEL_AIR) * run;
-      if (keys['KeyW']||keys['ArrowUp'])    playerVelocity.addScaledVector(forwardVec(),  accel*sub);
-      if (keys['KeyS']||keys['ArrowDown'])  playerVelocity.addScaledVector(forwardVec(), -accel*sub);
-      if (keys['KeyD']||keys['ArrowRight']) playerVelocity.addScaledVector(sideVec(),     accel*sub);
-      if (keys['KeyA']||keys['ArrowLeft'])  playerVelocity.addScaledVector(sideVec(),    -accel*sub);
+      if (mf) playerVelocity.addScaledVector(forwardVec(), accel*sub*mf);
+      if (ms) playerVelocity.addScaledVector(sideVec(),    accel*sub*ms);
       let damp = Math.exp(-4 * sub) - 1;             // friction
       if (!playerOnFloor){ playerVelocity.y -= GRAVITY * sub; damp *= 0.1; }
       playerVelocity.addScaledVector(playerVelocity, damp);
