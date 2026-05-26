@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICG · GALLERY — Maison of Contemporary Space</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --char-900:#15120e;
+    --char-800:#1d1812;
+    --char-700:#2a231b;
+    --beige-50:#f7f2ea;
+    --beige-100:#efe6d8;
+    --beige-200:#e3d5be;
+    --beige-300:#d3bf9f;
+    --bronze:#9c7a4f;
+    --ink:#28221a;
+    --line:rgba(40,34,26,.16);
+    --ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;scroll-snap-type:y proximity}
+  body{
+    font-family:'Jost',sans-serif;
+    background:var(--char-900);
+    color:var(--beige-50);
+    overflow-x:hidden;
+  }
+  ::selection{background:var(--bronze);color:var(--char-900)}
+  body::-webkit-scrollbar{width:8px}
+  body::-webkit-scrollbar-track{background:var(--char-800)}
+  body::-webkit-scrollbar-thumb{background:var(--bronze);border-radius:0}
+
+  /* grain overlay */
+  body::after{
+    content:"";position:fixed;inset:0;z-index:9000;pointer-events:none;
+    mix-blend-mode:overlay;opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  h1,h2,h3,.serif{font-family:'Cormorant Garamond',serif;font-weight:300;letter-spacing:.01em}
+  .eyebrow{
+    font-size:.72rem;letter-spacing:.42em;text-transform:uppercase;font-weight:400;
+    opacity:.7;display:inline-block;
+  }
+
+  /* ---------- NAV ---------- */
+  .nav{
+    position:fixed;top:0;left:0;width:100%;z-index:1000;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:1.7rem clamp(1.4rem,5vw,4.5rem);
+    transition:color .5s var(--ease),background .5s var(--ease),padding .5s var(--ease);
+    color:var(--beige-50);
+  }
+  .nav.scrolled{padding:1.05rem clamp(1.4rem,5vw,4.5rem);background:rgba(21,18,14,.72);backdrop-filter:blur(14px)}
+  .nav.light{color:var(--ink)}
+  .nav.light.scrolled{background:rgba(247,242,234,.78)}
+  .brand{font-family:'Cormorant Garamond',serif;font-size:1.45rem;letter-spacing:.34em;font-weight:500;padding-left:.34em}
+  .nav-links{display:flex;gap:clamp(1.2rem,3vw,2.8rem);list-style:none}
+  .nav-links a{
+    color:inherit;text-decoration:none;font-size:.74rem;letter-spacing:.24em;text-transform:uppercase;
+    position:relative;padding:.3rem 0;opacity:.85;transition:opacity .3s
+  }
+  .nav-links a::after{
+    content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--bronze);transition:width .4s var(--ease)
+  }
+  .nav-links a:hover{opacity:1}
+  .nav-links a:hover::after{width:100%}
+  @media(max-width:680px){.nav-links{display:none}}
+
+  /* ---------- HERO ---------- */
+  .hero{position:relative;height:100vh;overflow:hidden;scroll-snap-align:start;display:flex;align-items:flex-end}
+  .hero-media{position:absolute;inset:0;z-index:0}
+  .hero-media video,.hero-media img{
+    position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    transform:scale(1.12);animation:kenburns 26s var(--ease) infinite alternate
+  }
+  @keyframes kenburns{
+    0%{transform:scale(1.12) translate3d(0,0,0)}
+    100%{transform:scale(1.22) translate3d(-2.5%,-2%,0)}
+  }
+  .hero-media::before{content:"";position:absolute;inset:0;z-index:1;
+    background:linear-gradient(180deg,rgba(21,18,14,.55) 0%,rgba(21,18,14,.12) 38%,rgba(21,18,14,.85) 100%)}
+  /* drifting light — "ambient video" feel */
+  .hero-media::after{content:"";position:absolute;inset:-30%;z-index:1;
+    background:radial-gradient(40% 40% at 30% 30%,rgba(255,240,215,.18),transparent 70%);
+    animation:drift 18s ease-in-out infinite alternate}
+  @keyframes drift{0%{transform:translate(0,0)}100%{transform:translate(40%,30%)}}
+
+  .hero-inner{position:relative;z-index:2;padding:0 clamp(1.4rem,5vw,4.5rem) clamp(3rem,7vh,6rem);width:100%}
+  .hero h1{
+    font-size:clamp(3.4rem,12.5vw,11.5rem);line-height:.9;font-weight:300;letter-spacing:-.01em;
+    max-width:14ch
+  }
+  .hero h1 em{font-style:italic;font-weight:300;color:var(--beige-200)}
+  .hero-sub{display:flex;align-items:flex-end;justify-content:space-between;gap:2rem;flex-wrap:wrap;margin-top:1.6rem}
+  .hero-sub p{max-width:34ch;font-size:.95rem;line-height:1.7;opacity:.82;font-weight:300}
+  .scroll-cue{display:flex;align-items:center;gap:.8rem;font-size:.7rem;letter-spacing:.3em;text-transform:uppercase;opacity:.7}
+  .scroll-cue .line{width:46px;height:1px;background:currentColor;transform-origin:left;animation:cue 2.4s var(--ease) infinite}
+  @keyframes cue{0%,100%{transform:scaleX(.4);opacity:.4}50%{transform:scaleX(1);opacity:1}}
+
+  /* load reveal */
+  [data-load]{opacity:0;transform:translateY(28px);transition:opacity 1.1s var(--ease),transform 1.1s var(--ease)}
+  .ready [data-load]{opacity:1;transform:none}
+  .ready [data-load]{transition-delay:var(--d,0s)}
+
+  /* ---------- STATEMENT ---------- */
+  .statement{background:var(--beige-50);color:var(--ink);scroll-snap-align:start;
+    min-height:100vh;display:flex;align-items:center;padding:7rem clamp(1.4rem,5vw,4.5rem)}
+  .statement-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:clamp(2rem,6vw,7rem);width:100%;max-width:1300px;margin:0 auto;align-items:center}
+  @media(max-width:880px){.statement-grid{grid-template-columns:1fr;gap:2.5rem}}
+  .statement .eyebrow{color:var(--bronze)}
+  .statement h2{font-size:clamp(2rem,4.4vw,3.9rem);line-height:1.08;margin:1.4rem 0;font-weight:300}
+  .statement h2 em{font-style:italic;color:var(--bronze)}
+  .statement .lede{font-size:1.05rem;line-height:1.85;opacity:.78;max-width:46ch;font-weight:300}
+  .stat-row{display:flex;gap:clamp(1.5rem,4vw,3.5rem);margin-top:2.6rem;flex-wrap:wrap}
+  .stat-row .n{font-family:'Cormorant Garamond',serif;font-size:2.6rem;font-weight:400;line-height:1}
+  .stat-row .l{font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;opacity:.6;margin-top:.4rem}
+
+  /* reveal on scroll */
+  [data-reveal]{opacity:0;transform:translateY(34px);transition:opacity 1s var(--ease),transform 1s var(--ease)}
+  [data-reveal].in{opacity:1;transform:none;transition-delay:var(--d,0s)}
+
+  /* ---------- ROOMS (scroll-snap fullscreen) ---------- */
+  .room{position:relative;height:100vh;overflow:hidden;scroll-snap-align:start;display:flex;align-items:flex-end}
+  .room .ph{position:absolute;inset:0;background:linear-gradient(135deg,var(--char-700),var(--char-900))}
+  .room img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;
+    transform:scale(1.06);transition:opacity 1.4s var(--ease),transform 8s var(--ease)}
+  .room img.loaded{opacity:1;transform:scale(1)}
+  .room::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(21,18,14,.45),transparent 30%,rgba(21,18,14,.78))}
+  .room-content{position:relative;z-index:2;padding:0 clamp(1.4rem,5vw,4.5rem) clamp(3rem,8vh,6.5rem);width:100%;
+    display:flex;justify-content:space-between;align-items:flex-end;gap:2rem;flex-wrap:wrap}
+  .room-content .idx{font-family:'Cormorant Garamond',serif;font-size:1rem;opacity:.6;letter-spacing:.2em}
+  .room-content h3{font-size:clamp(2.6rem,7vw,6rem);line-height:.94;font-weight:300}
+  .room-content h3 em{font-style:italic}
+  .room-content .meta{max-width:32ch;font-size:.9rem;line-height:1.7;opacity:.8;font-weight:300}
+
+  /* ---------- COLLECTION (Tilt cards) ---------- */
+  .collection{background:var(--beige-100);color:var(--ink);padding:7rem clamp(1.4rem,5vw,4.5rem);scroll-snap-align:start}
+  .collection-head{max-width:1300px;margin:0 auto 3.5rem;display:flex;justify-content:space-between;align-items:flex-end;gap:2rem;flex-wrap:wrap}
+  .collection-head .eyebrow{color:var(--bronze)}
+  .collection-head h2{font-size:clamp(2rem,4.4vw,3.6rem);font-weight:300;margin-top:.8rem}
+  .collection-head p{max-width:30ch;font-size:.92rem;line-height:1.7;opacity:.7;font-weight:300}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(1rem,2.2vw,2rem);max-width:1300px;margin:0 auto;perspective:1400px}
+  @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.grid{grid-template-columns:1fr}}
+  .card{
+    position:relative;background:var(--beige-200);transform-style:preserve-3d;
+    will-change:transform;opacity:0;
+    box-shadow:0 14px 36px -26px rgba(21,18,14,.5);
+    transition:opacity .9s var(--ease),box-shadow .45s var(--ease)
+  }
+  .card.seen{opacity:1}
+  .card:hover{box-shadow:0 46px 92px -34px rgba(21,18,14,.62)}
+  .card-img{position:relative;aspect-ratio:4/5;overflow:hidden;background:linear-gradient(160deg,var(--beige-300),var(--char-700))}
+  .card-img img{width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.08);
+    transition:opacity 1.1s var(--ease),transform 1.1s var(--ease)}
+  .card-img img.loaded{opacity:1;transform:scale(1)}
+  .card-tag{position:absolute;top:1rem;left:1rem;z-index:3;transform:translateZ(48px);
+    font-size:.62rem;letter-spacing:.24em;text-transform:uppercase;background:rgba(21,18,14,.7);color:var(--beige-50);padding:.4rem .7rem}
+  .card-body{padding:1.4rem 1.3rem 1.7rem;transform:translateZ(28px)}
+  .card-body h4{font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:500;line-height:1.05}
+  .card-body .sub{display:flex;justify-content:space-between;margin-top:.6rem;font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;opacity:.6}
+  .card-glare{pointer-events:none}
+
+  /* ---------- FLOOR PLAN (scroll-draw SVG) ---------- */
+  .plan{background:var(--char-900);position:relative;min-height:200vh;padding:0 clamp(1.4rem,5vw,4.5rem);scroll-snap-align:none}
+  .plan-sticky{position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column}
+  .plan-head{text-align:center;margin-bottom:2rem;max-width:48ch}
+  .plan-head .eyebrow{color:var(--bronze)}
+  .plan-head h2{font-size:clamp(1.9rem,4.4vw,3.4rem);font-weight:300;margin-top:.7rem;line-height:1.1}
+  .plan-head h2 em{font-style:italic;color:var(--beige-200)}
+  .plan svg{width:min(86vw,820px);height:auto;display:block}
+  .plan svg .wall{fill:none;stroke:var(--beige-200);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .plan svg .detail{fill:none;stroke:var(--bronze);stroke-width:1.4}
+  .plan svg .rlabel{fill:var(--beige-100);font-family:'Jost',sans-serif;font-size:13px;letter-spacing:3px;text-transform:uppercase;opacity:0;transition:opacity .6s var(--ease)}
+  .plan svg .rlabel.on{opacity:.78}
+  .plan-progress{margin-top:1.6rem;font-size:.7rem;letter-spacing:.3em;text-transform:uppercase;opacity:.55}
+
+  /* ---------- FOOTER ---------- */
+  .foot{background:var(--char-800);color:var(--beige-50);padding:6rem clamp(1.4rem,5vw,4.5rem) 2.5rem;scroll-snap-align:start;min-height:100vh;display:flex;flex-direction:column;justify-content:space-between}
+  .foot-top{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:3rem;max-width:1300px;margin:0 auto;width:100%}
+  @media(max-width:780px){.foot-top{grid-template-columns:1fr;gap:2.2rem}}
+  .foot h2{font-size:clamp(2.4rem,6vw,5rem);font-weight:300;line-height:1.02}
+  .foot h2 em{font-style:italic;color:var(--bronze)}
+  .foot .col h5{font-size:.7rem;letter-spacing:.26em;text-transform:uppercase;opacity:.55;margin-bottom:1.1rem}
+  .foot .col a,.foot .col p{display:block;color:var(--beige-50);text-decoration:none;font-size:.95rem;line-height:2;opacity:.85;font-weight:300}
+  .foot .col a:hover{color:var(--bronze)}
+  .foot-bottom{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(247,242,234,.14);
+    margin-top:3rem;padding-top:1.6rem;max-width:1300px;width:100%;margin-left:auto;margin-right:auto;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;opacity:.55;flex-wrap:wrap;gap:1rem}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="brand">ICG</div>
+  <ul class="nav-links">
+    <li><a href="#statement">Maison</a></li>
+    <li><a href="#rooms">Spaces</a></li>
+    <li><a href="#collection">Collection</a></li>
+    <li><a href="#plan">Plan</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<header class="hero" data-theme="dark">
+  <div class="hero-media">
+    <!-- Swap the <source> with your own muted/loop footage; the poster keeps motion alive meanwhile -->
+    <video autoplay muted loop playsinline poster="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?q=80&w=1920&auto=format&fit=crop">
+      <source src="" type="video/mp4">
+    </video>
+  </div>
+  <div class="hero-inner">
+    <span class="eyebrow" data-load style="--d:.1s">Contemporary Art · Architecture · Object</span>
+    <h1 data-load style="--d:.25s">A Space<br>to be <em>Inhabited</em></h1>
+    <div class="hero-sub">
+      <p data-load style="--d:.5s">ICG is a gallery conceived as architecture — where light, material and silence are themselves the exhibition. Step in.</p>
+      <div class="scroll-cue" data-load style="--d:.7s"><span class="line"></span> Scroll to enter</div>
+    </div>
+  </div>
+</header>
+
+<!-- STATEMENT -->
+<section class="statement" id="statement" data-theme="light">
+  <div class="statement-grid">
+    <div data-reveal>
+      <span class="eyebrow">The Maison</span>
+      <h2>We don't hang work<br>on walls. We <em>build rooms</em><br>around it.</h2>
+    </div>
+    <div data-reveal style="--d:.15s">
+      <p class="lede">Restraint is the discipline of luxury. Every surface, every shadow at ICG is composed so the object can breathe — warm lime plaster, charcoal stone, and a single shaft of northern light. Nothing competes. Everything resonates.</p>
+      <div class="stat-row">
+        <div><div class="n">2009</div><div class="l">Established</div></div>
+        <div><div class="n">14</div><div class="l">Curated Rooms</div></div>
+        <div><div class="n">∞</div><div class="l">Northern Light</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROOMS — fullscreen scroll-snap -->
+<div id="rooms">
+  <section class="room" data-theme="dark">
+    <div class="ph"></div>
+    <img data-src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?q=80&w=1920&auto=format&fit=crop" alt="The Atrium">
+    <div class="room-content">
+      <div>
+        <div class="idx">Room I</div>
+        <h3>The <em>Atrium</em></h3>
+      </div>
+      <p class="meta">A double-height void clad in travertine. The first breath — where scale resets the eye before any work is seen.</p>
+    </div>
+  </section>
+
+  <section class="room" data-theme="dark">
+    <div class="ph"></div>
+    <img data-src="https://images.unsplash.com/photo-1600210492493-0946911123ea?q=80&w=1920&auto=format&fit=crop" alt="Hall of Light">
+    <div class="room-content">
+      <div>
+        <div class="idx">Room II</div>
+        <h3>Hall of <em>Light</em></h3>
+      </div>
+      <p class="meta">North-facing clerestories wash the plaster in a slow, shadowless glow that shifts across the day.</p>
+    </div>
+  </section>
+
+  <section class="room" data-theme="dark">
+    <div class="ph"></div>
+    <img data-src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=1920&auto=format&fit=crop" alt="The Pavilion">
+    <div class="room-content">
+      <div>
+        <div class="idx">Room III</div>
+        <h3>The <em>Pavilion</em></h3>
+      </div>
+      <p class="meta">A glass enclosure dissolving the line between gallery and garden — objects shown against living green.</p>
+    </div>
+  </section>
+</div>
+
+<!-- COLLECTION — Tilt.js cards -->
+<section class="collection" id="collection" data-theme="light">
+  <div class="collection-head">
+    <div data-reveal>
+      <span class="eyebrow">Current Collection</span>
+      <h2>Objects in Residence</h2>
+    </div>
+    <p data-reveal style="--d:.1s">Hover a piece — it tilts to meet your gaze, the way a curator turns an object toward the light.</p>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="card-img"><img data-src="https://images.unsplash.com/photo-1578321272176-b7bbc0679853?q=80&w=900&auto=format&fit=crop" alt=""></div>
+      <span class="card-tag">Sculpture</span>
+      <div class="card-body"><h4>Untitled (Monolith)</h4><div class="sub"><span>Carrara Marble</span><span>2023</span></div></div>
+    </div>
+    <div class="card">
+      <div class="card-img"><img data-src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?q=80&w=900&auto=format&fit=crop" alt=""></div>
+      <span class="card-tag">Painting</span>
+      <div class="card-body"><h4>Field, Ochre</h4><div class="sub"><span>Oil on Linen</span><span>2024</span></div></div>
+    </div>
+    <div class="card">
+      <div class="card-img"><img data-src="https://images.unsplash.com/photo-1531913764164-f85c52e6e654?q=80&w=900&auto=format&fit=crop" alt=""></div>
+      <span class="card-tag">Object</span>
+      <div class="card-body"><h4>Vessel No. 7</h4><div class="sub"><span>Raw Bronze</span><span>2022</span></div></div>
+    </div>
+    <div class="card">
+      <div class="card-img"><img data-src="https://images.unsplash.com/photo-1574182245530-967d9b3831af?q=80&w=900&auto=format&fit=crop" alt=""></div>
+      <span class="card-tag">Painting</span>
+      <div class="card-body"><h4>Quiet Geometry</h4><div class="sub"><span>Acrylic</span><span>2024</span></div></div>
+    </div>
+    <div class="card">
+      <div class="card-img"><img data-src="https://images.unsplash.com/photo-1582561424760-0321d75e81fa?q=80&w=900&auto=format&fit=crop" alt=""></div>
+      <span class="card-tag">Sculpture</span>
+      <div class="card-body"><h4>Fold</h4><div class="sub"><span>Patinated Steel</span><span>2021</span></div></div>
+    </div>
+    <div class="card">
+      <div class="card-img"><img data-src="https://images.unsplash.com/photo-1536924940846-227afb31e2a5?q=80&w=900&auto=format&fit=crop" alt=""></div>
+      <span class="card-tag">Object</span>
+      <div class="card-body"><h4>Still, in Clay</h4><div class="sub"><span>Stoneware</span><span>2023</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FLOOR PLAN — scroll-driven SVG draw -->
+<section class="plan" id="plan" data-theme="dark">
+  <div class="plan-sticky">
+    <div class="plan-head">
+      <span class="eyebrow">The Architecture</span>
+      <h2>The plan reveals itself <em>as you move</em></h2>
+    </div>
+    <svg id="planSvg" viewBox="0 0 820 480" aria-hidden="true">
+      <!-- main outline + partitions drawn as you scroll -->
+      <path class="wall" id="planPath" d="
+        M60,70 L760,70 L760,410 L60,410 L60,70 Z
+        M320,70 L320,250 M320,250 L540,250 M540,250 L540,410
+        M60,260 L320,260 M540,160 L760,160
+        M460,410 L460,330 L600,330 L600,410"/>
+      <circle class="detail" id="d1" cx="190" cy="165" r="34"/>
+      <circle class="detail" id="d2" cx="650" cy="290" r="40"/>
+      <rect class="detail" id="d3" x="370" y="120" width="120" height="80"/>
+      <text class="rlabel" data-th=".18" x="120" y="350">Atrium</text>
+      <text class="rlabel" data-th=".42" x="365" y="170">Hall of Light</text>
+      <text class="rlabel" data-th=".62" x="585" y="120">Pavilion</text>
+      <text class="rlabel" data-th=".8" x="480" y="385">Court</text>
+    </svg>
+    <div class="plan-progress" id="planPct">00%</div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="foot" id="contact" data-theme="dark">
+  <div class="foot-top">
+    <div data-reveal>
+      <span class="eyebrow" style="color:var(--bronze)">Visit</span>
+      <h2>Come stand<br>inside the <em>light</em>.</h2>
+    </div>
+    <div class="col" data-reveal style="--d:.1s">
+      <h5>Gallery</h5>
+      <p>22 Rue de la Lumière</p>
+      <p>Paris · VIIIe</p>
+      <a href="#">Tue – Sat, 11 – 19h</a>
+    </div>
+    <div class="col" data-reveal style="--d:.2s">
+      <h5>Enquiries</h5>
+      <a href="#">studio@icg.gallery</a>
+      <a href="#">+33 1 00 00 00</a>
+      <a href="#">Private Viewings</a>
+      <a href="#">Press Kit</a>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>© <span id="yr"></span> ICG Gallery</span>
+    <span>Conceived in beige &amp; charcoal · Built with restraint</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // page-load reveal
+  window.addEventListener('load',()=>document.body.classList.add('ready'));
+  document.getElementById('yr').textContent=new Date().getFullYear();
+
+  // scroll-driven 3D parallax on collection cards (no hover / cursor needed)
+  const cards=[...document.querySelectorAll('.card')];
+  function parallaxCards(){
+    const vh=window.innerHeight, mid=vh/2, cx=window.innerWidth/2;
+    for(const card of cards){
+      const r=card.getBoundingClientRect();
+      if(r.bottom<-140||r.top>vh+140) continue;
+      let rel=(r.top+r.height/2-mid)/mid;        // -1 top … +1 bottom of viewport
+      rel=Math.max(-1.3,Math.min(1.3,rel));
+      const relX=((r.left+r.width/2)-cx)/cx;      // horizontal position → fan
+      const rx=(rel*9).toFixed(2);                // tilt with scroll
+      const ry=(relX*-6).toFixed(2);              // columns fan toward centre
+      const sc=(1-Math.min(1,Math.abs(rel))*0.06).toFixed(3);
+      const ty=(rel*-12).toFixed(1);              // subtle float / parallax
+      card.style.transform='rotateX('+rx+'deg) rotateY('+ry+'deg) translateY('+ty+'px) scale('+sc+')';
+    }
+  }
+  const seenIO=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('seen');seenIO.unobserve(e.target);}});},{threshold:.12});
+  cards.forEach(c=>seenIO.observe(c));
+  window.addEventListener('resize',parallaxCards,{passive:true});
+
+  // IntersectionObserver — lazy-load high-res imagery
+  const lazyIO=new IntersectionObserver((entries,obs)=>{
+    entries.forEach(e=>{
+      if(!e.isIntersecting)return;
+      const img=e.target, src=img.dataset.src;
+      if(src){
+        const tmp=new Image();
+        tmp.onload=()=>{img.src=src;img.classList.add('loaded');};
+        tmp.onerror=()=>{img.style.display='none';}; // graceful fallback to gradient panel
+        tmp.src=src;
+      }
+      obs.unobserve(img);
+    });
+  },{rootMargin:'300px 0px'});
+  document.querySelectorAll('img[data-src]').forEach(i=>lazyIO.observe(i));
+
+  // reveal-on-scroll
+  const revIO=new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');revIO.unobserve(e.target);}});
+  },{threshold:.18});
+  document.querySelectorAll('[data-reveal]').forEach(el=>revIO.observe(el));
+
+  // adaptive nav theme + condensed state
+  const nav=document.getElementById('nav');
+  const sections=[...document.querySelectorAll('[data-theme]')];
+  let ticking=false;
+  function onScroll(){
+    nav.classList.toggle('scrolled',window.scrollY>40);
+    const probe=70;
+    for(const s of sections){
+      const r=s.getBoundingClientRect();
+      if(r.top<=probe && r.bottom>probe){
+        nav.classList.toggle('light',s.dataset.theme==='light');
+        break;
+      }
+    }
+    // scroll-driven floor-plan draw + card parallax
+    drawPlan();
+    parallaxCards();
+    ticking=false;
+  }
+  window.addEventListener('scroll',()=>{if(!ticking){requestAnimationFrame(onScroll);ticking=true;}},{passive:true});
+
+  // floor-plan SVG scrub
+  const planSec=document.getElementById('plan');
+  const planPath=document.getElementById('planPath');
+  const details=[document.getElementById('d1'),document.getElementById('d2'),document.getElementById('d3')];
+  const labels=[...document.querySelectorAll('.rlabel')];
+  const pct=document.getElementById('planPct');
+  const pathLen=planPath.getTotalLength();
+  planPath.style.strokeDasharray=pathLen;
+  planPath.style.strokeDashoffset=pathLen;
+  details.forEach(d=>{const l=d.getTotalLength();d.style.strokeDasharray=l;d.style.strokeDashoffset=l;});
+  function drawPlan(){
+    const r=planSec.getBoundingClientRect();
+    const total=planSec.offsetHeight-window.innerHeight;
+    let p=(-r.top)/total;
+    p=Math.max(0,Math.min(1,p));
+    planPath.style.strokeDashoffset=pathLen*(1-Math.min(1,p*1.15));
+    details.forEach(d=>{const l=d.getTotalLength();const dp=Math.max(0,Math.min(1,(p-.55)/.4));d.style.strokeDashoffset=l*(1-dp);});
+    labels.forEach(l=>l.classList.toggle('on',p>=parseFloat(l.dataset.th)));
+    pct.textContent=String(Math.round(p*100)).padStart(2,'0')+'%';
+  }
+  onScroll();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Depth — A Single Image, Made Truly 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--char:#14110d;--beige:#e8dfd3;--beige2:#f6f1e9;--bronze:#9c7a4f;--ease:cubic-bezier(.22,.61,.36,1)}
+  html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;overscroll-behavior-x:none}
+  body{background:var(--char);color:var(--beige);font-family:'Jost',sans-serif;overflow-x:clip;overscroll-behavior-x:none}
+  ::selection{background:var(--bronze);color:var(--char)}
+  .serif{font-family:'Cormorant Garamond',serif;font-weight:300}
+  .eyebrow{font-size:.72rem;letter-spacing:.42em;text-transform:uppercase;opacity:.65}
+
+  .intro,.outro{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2.5rem;gap:1.4rem}
+  .intro h1{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(2.6rem,8vw,6.5rem);line-height:1;max-width:16ch}
+  .intro h1 em{font-style:italic;color:var(--beige2)}
+  .intro p{max-width:44ch;line-height:1.8;opacity:.72;font-weight:300}
+  .intro .eyebrow{color:var(--bronze)}
+  .scroll-cue{margin-top:1rem;display:flex;flex-direction:column;align-items:center;gap:.7rem;font-size:.66rem;letter-spacing:.3em;text-transform:uppercase;opacity:.6}
+  .scroll-cue .bar{width:1px;height:54px;background:linear-gradient(var(--bronze),transparent);animation:fall 2.2s var(--ease) infinite}
+  @keyframes fall{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+
+  .stage-wrap{position:relative;height:100vh}
+  .stage{position:relative;height:100vh;overflow:hidden;background:#0a0805;cursor:grab;touch-action:pan-y}
+  .stage:active{cursor:grabbing}
+  #gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .fallback{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+  .stage-vignette{position:absolute;inset:0;pointer-events:none;z-index:2;
+    box-shadow:inset 0 0 200px 40px rgba(8,6,4,.5);
+    background:linear-gradient(180deg,rgba(8,6,4,.3),transparent 24%,transparent 66%,rgba(8,6,4,.55))}
+  .overlay{position:absolute;left:0;bottom:0;z-index:3;padding:clamp(1.6rem,5vw,4.2rem);pointer-events:none;max-width:42ch}
+  .overlay .eyebrow{color:var(--beige2);opacity:.85}
+  .overlay h2{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(2.2rem,5.5vw,4.4rem);line-height:1.02;margin-top:.5rem;text-shadow:0 2px 30px rgba(0,0,0,.55)}
+  .overlay h2 em{font-style:italic}
+  .meter{position:absolute;right:clamp(1.4rem,4vw,3rem);bottom:clamp(1.6rem,5vw,4.2rem);z-index:3;
+    font-size:.68rem;letter-spacing:.28em;text-transform:uppercase;opacity:.7;display:flex;align-items:center;gap:.8rem}
+  .meter .track{width:120px;height:1px;background:rgba(232,223,211,.3);position:relative}
+  .meter .track i{position:absolute;top:50%;left:50%;width:9px;height:9px;border-radius:50%;background:var(--bronze);transform:translate(-50%,-50%)}
+  .badge{position:absolute;top:clamp(1.4rem,4vw,3rem);left:clamp(1.4rem,5vw,4.2rem);z-index:3;
+    font-size:.62rem;letter-spacing:.24em;text-transform:uppercase;opacity:.62;border:1px solid rgba(232,223,211,.25);padding:.45rem .8rem;border-radius:2px}
+  .hint{position:absolute;left:50%;bottom:clamp(1.6rem,5vw,3rem);transform:translateX(-50%);z-index:3;
+    font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;opacity:.7;pointer-events:none;white-space:nowrap;
+    transition:opacity .6s var(--ease);animation:hintpulse 3s ease-in-out infinite}
+  @keyframes hintpulse{0%,100%{opacity:.4}50%{opacity:.82}}
+  .outro h3{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(1.8rem,4vw,3rem)}
+  .outro p{max-width:50ch;line-height:1.8;opacity:.7;font-weight:300}
+  .outro code{font-family:ui-monospace,monospace;font-size:.82em;color:var(--bronze);background:rgba(156,122,79,.12);padding:.1rem .4rem;border-radius:3px}
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+
+<section class="intro">
+  <span class="eyebrow">Depth · Real 3D</span>
+  <h1 class="serif">A single image,<br>made <em>truly 3D</em></h1>
+  <p>The photo is displaced into a real 3D mesh by its depth map and viewed through a perspective camera. It orbits gently on its own — drag or swipe left–right to look around. Vertical scrolling still pages.</p>
+  <div class="scroll-cue"><span class="bar"></span>Scroll</div>
+</section>
+
+<section class="stage-wrap">
+  <div class="stage">
+    <canvas id="gl"></canvas>
+    <img class="fallback" id="src" crossorigin="anonymous" src="assets/render.jpg" alt="">
+    <div class="stage-vignette"></div>
+    <span class="badge">Three.js · Depth Mesh · Real 3D</span>
+    <div class="overlay">
+      <span class="eyebrow">Interior No. 01</span>
+      <h2 class="serif">Step inside <em>the frame</em></h2>
+    </div>
+    <div class="meter"><span>Look</span><span class="track"><i id="dot"></i></span></div>
+    <div class="hint" id="hint">←&nbsp;&nbsp;拖动 / 左右滑动 看向四周&nbsp;&nbsp;→</div>
+  </div>
+</section>
+
+<section class="outro">
+  <span class="eyebrow" style="color:var(--bronze)">Use your own render</span>
+  <h3 class="serif">Drop in your image + depth map</h3>
+  <p>Best results come straight from your renderer's Z-depth / depth pass. Or generate one from any image with <code>assets/depth_gen.py</code>, then point <code>IMAGE_URL</code> / <code>DEPTH_URL</code> at them.</p>
+</section>
+
+<!-- watchdog: fall back to flat image if Three.js fails to load -->
+<script>
+  setTimeout(function(){
+    if(!window.__depthOK){
+      var g=document.getElementById('gl'), s=document.getElementById('src');
+      if(g) g.style.display='none'; if(s) s.style.display='block';
+    }
+  }, 4000);
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ---- config: swap for your own render ----
+const IMAGE_URL = 'assets/render.jpg';
+const DEPTH_URL = 'assets/render-depth.png';   // grayscale: white = near, black = far
+const DEPTH_SCALE = 0.52;     // 3D relief intensity (bigger = more pop)
+const TEAR = 0.07;            // tear the mesh where depth jumps more than this (0..1)
+const ORBIT_X = 0.08, ORBIT_Y = 0.05;   // automatic gentle orbit radius
+const LOOK_X  = 0.17, LOOK_Y  = 0.11;    // how far drag/swipe can push the view
+// ------------------------------------------
+
+const canvas = document.getElementById('gl');
+const stage  = document.querySelector('.stage');
+const dot    = document.getElementById('dot');
+const hint   = document.getElementById('hint');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+
+let imgAR = 1.3333, planeW = imgAR, planeH = 1, camZ = 2.4;
+
+const loader = new THREE.TextureLoader();
+loader.setCrossOrigin('anonymous');
+const load = u => new Promise((res, rej) => loader.load(u, res, undefined, rej));
+
+Promise.all([load(IMAGE_URL), load(DEPTH_URL)]).then(([imgTex, depthTex]) => {
+  imgTex.flipY = false; imgTex.colorSpace = THREE.SRGBColorSpace;
+  imgTex.minFilter = THREE.LinearFilter; imgTex.magFilter = THREE.LinearFilter;
+  imgTex.wrapS = imgTex.wrapT = THREE.ClampToEdgeWrapping; imgTex.generateMipmaps = false;
+
+  const img = imgTex.image, dImg = depthTex.image;
+  imgAR = img.width / img.height; planeW = imgAR; planeH = 1;
+
+  // read depth pixels on the CPU (same-origin: no canvas taint)
+  const dc = document.createElement('canvas'); dc.width = dImg.width; dc.height = dImg.height;
+  const dctx = dc.getContext('2d'); dctx.drawImage(dImg, 0, 0);
+  const DW = dc.width, DH = dc.height, dData = dctx.getImageData(0,0,DW,DH).data;
+  const sample = (u,v) => dData[(Math.min(DH-1,Math.max(0,Math.round(v*(DH-1))))*DW + Math.min(DW-1,Math.max(0,Math.round(u*(DW-1)))))*4] / 255;
+
+  // blurred backing texture: fills the torn gaps with soft background instead of holes/smears
+  const bw = Math.round(img.width/2), bh = Math.round(img.height/2);
+  const bc = document.createElement('canvas'); bc.width = bw; bc.height = bh;
+  const bctx = bc.getContext('2d'); bctx.filter = 'blur(5px)'; bctx.drawImage(img, 0, 0, bw, bh);
+  const blurTex = new THREE.CanvasTexture(bc); blurTex.flipY = false; blurTex.colorSpace = THREE.SRGBColorSpace;
+
+  // displaced grid; tear triangles that span a steep depth discontinuity
+  const cols = 481, rows = Math.max(2, Math.round(cols / imgAR));
+  const pos = new Float32Array(cols*rows*3), uv = new Float32Array(cols*rows*2), dep = new Float32Array(cols*rows);
+  for(let j=0;j<rows;j++) for(let i=0;i<cols;i++){
+    const u=i/(cols-1), v=j/(rows-1), d=sample(u,v), k=j*cols+i;
+    pos[k*3]=(u-0.5)*planeW; pos[k*3+1]=(0.5-v)*planeH; pos[k*3+2]=(d-0.5)*DEPTH_SCALE;
+    uv[k*2]=u; uv[k*2+1]=v; dep[k]=d;
+  }
+  const full=[], torn=[];
+  for(let j=0;j<rows-1;j++) for(let i=0;i<cols-1;i++){
+    const a=j*cols+i, b=a+1, c=a+cols, e=c+1;
+    full.push(a,c,b, b,c,e);
+    if(Math.max(dep[a],dep[b],dep[c],dep[e]) - Math.min(dep[a],dep[b],dep[c],dep[e]) <= TEAR) torn.push(a,c,b, b,c,e);
+  }
+  const posA=new THREE.BufferAttribute(pos,3), uvA=new THREE.BufferAttribute(uv,2);
+  const backGeo=new THREE.BufferGeometry(); backGeo.setAttribute('position',posA); backGeo.setAttribute('uv',uvA); backGeo.setIndex(full);
+  const frontGeo=new THREE.BufferGeometry(); frontGeo.setAttribute('position',posA); frontGeo.setAttribute('uv',uvA); frontGeo.setIndex(torn);
+
+  const back  = new THREE.Mesh(backGeo,  new THREE.MeshBasicMaterial({ map:blurTex, side:THREE.DoubleSide }));
+  back.position.z = -0.03;   // sits just behind, fills the gaps
+  const front = new THREE.Mesh(frontGeo, new THREE.MeshBasicMaterial({ map:imgTex,  side:THREE.DoubleSide }));
+  scene.add(back); scene.add(front);
+
+  fit(); animate();
+});
+
+function fit(){
+  const w = stage.clientWidth || window.innerWidth, h = stage.clientHeight || window.innerHeight, vAR = w/h;
+  renderer.setSize(w, h, false);
+  camera.aspect = vAR;
+  const fovy = THREE.MathUtils.degToRad(camera.fov);
+  const visH = (vAR > imgAR) ? (planeW / vAR) : planeH;       // cover fit
+  camZ = (visH/2) / Math.tan(fovy/2) * 0.86;                  // 0.86 = slight overscan for the orbit
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', fit, {passive:true});
+if(window.ResizeObserver){ new ResizeObserver(fit).observe(stage); }
+
+// ---- look control: drag / horizontal swipe; vertical stays page scroll ----
+let t = 0, uX = 0, uY = 0, tX = 0, tY = 0, interacted = false, lastW = 0, lastH = 0;
+const clamp = v => Math.max(-1, Math.min(1, v));
+function look(dx, dy){
+  tX = clamp(tX + dx); tY = clamp(tY + dy);
+  if(!interacted){ interacted = true; if(hint){ hint.style.animation='none'; hint.style.opacity='0'; } }
+}
+stage.addEventListener('wheel', e=>{
+  if(Math.abs(e.deltaX) > Math.abs(e.deltaY)){ e.preventDefault(); look(-e.deltaX*0.0016, 0); }
+}, {passive:false});
+let px=0, py=0, ax=null;
+stage.addEventListener('touchstart', e=>{ const p=e.touches[0]; px=p.clientX; py=p.clientY; ax=null; }, {passive:true});
+stage.addEventListener('touchmove', e=>{
+  const p=e.touches[0], dx=p.clientX-px, dy=p.clientY-py;
+  if(ax===null && (Math.abs(dx)>6||Math.abs(dy)>6)) ax = Math.abs(dx)>Math.abs(dy) ? 'x' : 'y';
+  if(ax==='x'){ e.preventDefault(); look(dx*0.004, 0); px=p.clientX; }
+}, {passive:false});
+let drag=false, mx=0, my=0;
+stage.addEventListener('pointerdown', e=>{ drag=true; mx=e.clientX; my=e.clientY; try{stage.setPointerCapture(e.pointerId);}catch(_){} });
+stage.addEventListener('pointermove', e=>{ if(drag){ look((e.clientX-mx)*0.0028, (e.clientY-my)*0.0028); mx=e.clientX; my=e.clientY; } });
+const stop=()=>drag=false;
+stage.addEventListener('pointerup', stop);
+stage.addEventListener('pointercancel', stop);
+
+function animate(){
+  window.__depthOK = true;
+  const cw = stage.clientWidth || window.innerWidth, ch = stage.clientHeight || window.innerHeight;
+  if(cw && ch && (cw !== lastW || ch !== lastH)){ lastW = cw; lastH = ch; fit(); }
+  t += 0.016;
+  uX += (tX - uX) * 0.07;
+  uY += (tY - uY) * 0.07;
+  camera.position.x = Math.sin(t*0.45) * ORBIT_X + uX * LOOK_X;
+  camera.position.y = Math.cos(t*0.38) * ORBIT_Y + uY * LOOK_Y;
+  camera.position.z = camZ;
+  camera.lookAt(0, 0, 0);
+  renderer.render(scene, camera);
+  if(dot) dot.style.left = (50 + uX*45) + '%';
+  requestAnimationFrame(animate);
+}
+</script>
+</body>
+</html>
