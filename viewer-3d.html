@@ -93,7 +93,7 @@
     <button data-v="3">内部</button>
   </div>
   <div class="title">
-    <span class="eyebrow">Live Model · Sponza</span>
+    <span class="eyebrow">Live Model · Modern House</span>
     <h1 class="serif">Real 3D — <em>walk the space</em></h1>
   </div>
   <div class="hint">拖动 · 旋转<br>滚轮 · 缩放<br>右键 · 平移</div>
@@ -118,8 +118,9 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Octree } from 'three/addons/math/Octree.js';
 import { Capsule } from 'three/addons/math/Capsule.js';
 import { Sky } from 'three/addons/objects/Sky.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 
-const MODEL_URL = 'assets/sponza/Sponza.gltf';   // swap for your own GLB/glTF
+const MODEL_URL = 'assets/house/house.obj';   // swap for your own model
 
 const canvas = document.getElementById('gl');
 const loaderEl = document.getElementById('loader');
@@ -130,6 +131,8 @@ renderer.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
 scene.background = null;   // the Sky mesh is the background
@@ -138,12 +141,15 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 const hemi = new THREE.HemisphereLight(0xffffff, 0x3a3026, 0.6);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff1dd, 2.2);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.bias = -0.0004;
 scene.add(sun);
 
 // ---- sky + day/night cycle ----
 const sky = new Sky(); sky.scale.setScalar(450000); scene.add(sky);
-sky.material.uniforms['turbidity'].value = 6;
-sky.material.uniforms['rayleigh'].value = 2.2;
+sky.material.uniforms['turbidity'].value = 4;
+sky.material.uniforms['rayleigh'].value = 3;
 sky.material.uniforms['mieCoefficient'].value = 0.005;
 sky.material.uniforms['mieDirectionalG'].value = 0.8;
 const envScene = new THREE.Scene();
@@ -188,10 +194,10 @@ function setTimeOfDay(t){
   const warm = THREE.MathUtils.smoothstep(up, 0, 0.4);
   if (elev > 2){ sun.intensity = up * 3.2 + 0.05; sun.color.lerpColors(C_sunLow, C_sunHigh, warm); }
   else { sun.intensity = 0.25; sun.color.copy(C_moon); }            // moonlight
-  hemi.intensity = 0.3 + up * 0.5;
+  hemi.intensity = 0.18 + up * 0.4;
   hemi.color.lerpColors(C_skyNight, C_skyDay, up);
   hemi.groundColor.lerpColors(C_gndNight, C_gndDay, up);
-  renderer.toneMappingExposure = 0.42 + up * 0.8;
+  renderer.toneMappingExposure = 0.38 + up * 0.6;
   const night = 1 - THREE.MathUtils.smoothstep(up, 0, 0.12);    // 1 at night, 0 in daylight
   starMat.opacity = night;
   for (const l of interiorLights) l.intensity = night * lightBaseIntensity;
@@ -323,19 +329,17 @@ manager.onProgress = (url, loaded, total) => { if(total) pctEl.textContent = Mat
 manager.onLoad = () => { loaderEl.classList.add('gone'); };
 manager.onError = () => showError();
 
-const draco = new DRACOLoader();
-draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
-const gltf = new GLTFLoader(manager);
-gltf.setDRACOLoader(draco);
-
-gltf.load(MODEL_URL, (g) => {
-  const model = g.scene;
+const objLoader = new OBJLoader(manager);
+objLoader.load(MODEL_URL, (model) => {
+  // clean off-white "massing model" material that reacts to the day/night lighting
+  model.traverse(o => {
+    if (o.isMesh){
+      o.geometry.computeVertexNormals();   // crisp flat shading on the faceted geometry
+      o.material = new THREE.MeshStandardMaterial({ color: 0xdcd5c8, roughness: 0.85, metalness: 0.0, envMapIntensity: 0.5 });
+      o.castShadow = true; o.receiveShadow = true;
+    }
+  });
   scene.add(model);
-
-  if (g.animations && g.animations.length){
-    mixer = new THREE.AnimationMixer(model);
-    g.animations.forEach(a => mixer.clipAction(a).play());
-  }
 
   // frame the camera to the model's bounding box
   const box = new THREE.Box3().setFromObject(model);
@@ -350,8 +354,23 @@ gltf.load(MODEL_URL, (g) => {
   H = maxDim * 0.06;                      // total player height
   GRAVITY = maxDim; ACCEL_GROUND = maxDim * 0.9; ACCEL_AIR = maxDim * 0.3;
   fpStart.set(center.x, floorY, center.z);
+
+  // sun shadows aimed at the model
+  sun.target.position.copy(center); scene.add(sun.target);
+  const sc = sun.shadow.camera;
+  sc.left = -maxDim; sc.right = maxDim; sc.top = maxDim; sc.bottom = -maxDim;
+  sc.near = maxDim * 0.05; sc.far = maxDim * 12; sc.updateProjectionMatrix();
+
+  // ground plane: shadow receiver + walkable floor
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(maxDim * 6, maxDim * 6),
+    new THREE.MeshStandardMaterial({ color: 0xbcb3a3, roughness: 1, envMapIntensity: 0.5 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.y = floorY; ground.receiveShadow = true;
+  scene.add(ground);
+
   worldOctree = new Octree();
   worldOctree.fromGraphNode(model);
+  worldOctree.fromGraphNode(ground);   // so you can walk on the ground
   playerCapsule = new Capsule(
     new THREE.Vector3(center.x, floorY + R, center.z),
     new THREE.Vector3(center.x, floorY + H - R, center.z),
