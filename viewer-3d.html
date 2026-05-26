@@ -120,7 +120,12 @@ import { Capsule } from 'three/addons/math/Capsule.js';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 
-const MODEL_URL = 'assets/house/house.obj';   // swap for your own model
+const MODELS = { house: 'assets/house/house.obj', castle: 'assets/sponza/Sponza.gltf' };
+const _mp = new URLSearchParams(location.search).get('model');
+const MODEL_URL = MODELS[_mp] || MODELS.house;
+const IS_OBJ = MODEL_URL.toLowerCase().endsWith('.obj');
+{ const lbl = { house: 'Modern House', castle: 'Sponza Palace' }[_mp] || 'Modern House';
+  const el = document.querySelector('.title .eyebrow'); if (el) el.textContent = 'Live Model · ' + lbl; }
 
 const canvas = document.getElementById('gl');
 const loaderEl = document.getElementById('loader');
@@ -329,14 +334,14 @@ manager.onProgress = (url, loaded, total) => { if(total) pctEl.textContent = Mat
 manager.onLoad = () => { loaderEl.classList.add('gone'); };
 manager.onError = () => showError();
 
-const objLoader = new OBJLoader(manager);
-objLoader.load(MODEL_URL, (model) => {
-  // clean off-white "massing model" material that reacts to the day/night lighting
+function onModel(model){
   model.traverse(o => {
     if (o.isMesh){
-      o.geometry.computeVertexNormals();   // crisp flat shading on the faceted geometry
-      o.material = new THREE.MeshStandardMaterial({ color: 0xdcd5c8, roughness: 0.85, metalness: 0.0, envMapIntensity: 0.5 });
       o.castShadow = true; o.receiveShadow = true;
+      if (IS_OBJ){   // geometry-only OBJ -> clean white-model material + flat shading
+        o.geometry.computeVertexNormals();
+        o.material = new THREE.MeshStandardMaterial({ color: 0xdcd5c8, roughness: 0.85, metalness: 0.0, envMapIntensity: 0.5 });
+      }
     }
   });
   scene.add(model);
@@ -361,16 +366,16 @@ objLoader.load(MODEL_URL, (model) => {
   sc.left = -maxDim; sc.right = maxDim; sc.top = maxDim; sc.bottom = -maxDim;
   sc.near = maxDim * 0.05; sc.far = maxDim * 12; sc.updateProjectionMatrix();
 
-  // ground plane: shadow receiver + walkable floor
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(maxDim * 6, maxDim * 6),
-    new THREE.MeshStandardMaterial({ color: 0xbcb3a3, roughness: 1, envMapIntensity: 0.5 }));
-  ground.rotation.x = -Math.PI / 2; ground.position.y = floorY; ground.receiveShadow = true;
-  scene.add(ground);
-
   worldOctree = new Octree();
   worldOctree.fromGraphNode(model);
-  worldOctree.fromGraphNode(ground);   // so you can walk on the ground
+  if (IS_OBJ){   // OBJ models have no floor -> add a ground plane (shadow catcher + walkable)
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(maxDim * 6, maxDim * 6),
+      new THREE.MeshStandardMaterial({ color: 0xbcb3a3, roughness: 1, envMapIntensity: 0.5 }));
+    ground.rotation.x = -Math.PI / 2; ground.position.y = floorY; ground.receiveShadow = true;
+    scene.add(ground);
+    worldOctree.fromGraphNode(ground);
+  }
   playerCapsule = new Capsule(
     new THREE.Vector3(center.x, floorY + R, center.z),
     new THREE.Vector3(center.x, floorY + H - R, center.z),
@@ -415,7 +420,16 @@ objLoader.load(MODEL_URL, (model) => {
 
   resize();
   animate();
-}, undefined, () => showError());
+}
+
+if (IS_OBJ){
+  new OBJLoader(manager).load(MODEL_URL, onModel, undefined, () => showError());
+} else {
+  const draco = new DRACOLoader();
+  draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
+  const gltf = new GLTFLoader(manager); gltf.setDRACOLoader(draco);
+  gltf.load(MODEL_URL, (g) => onModel(g.scene), undefined, () => showError());
+}
 
 function showError(){
   loaderEl.innerHTML = '<div class="err">3D 场景加载失败。请检查网络后刷新，或换用本地模型文件。</div>';
