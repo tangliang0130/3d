@@ -150,12 +150,13 @@ const canvas = document.getElementById('gl');
 const loaderEl = document.getElementById('loader');
 const pctEl = document.getElementById('pct');
 
-const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
-renderer.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
+const MOBILE = matchMedia('(pointer:coarse)').matches || ('ontouchstart' in window);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: !MOBILE, powerPreference: 'high-performance' });
+renderer.setPixelRatio(MOBILE ? 1 : Math.min(2, window.devicePixelRatio||1));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = !MOBILE;   // shadows off on phones (big GPU/memory saving)
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
@@ -361,9 +362,12 @@ manager.onError = () => showError();
 
 function onModel(model){
   model.scale.setScalar(MODEL_SCALE);   // normalize to real-world meters
+  let _tri = 0;
   model.traverse(o => {
     if (o.isMesh){
       o.castShadow = true; o.receiveShadow = true;
+      const g = o.geometry;
+      _tri += (g.index ? g.index.count : g.attributes.position.count) / 3;
       if (IS_OBJ){   // geometry-only OBJ -> clean white-model material + flat shading
         o.geometry.computeVertexNormals();
         o.material = new THREE.MeshStandardMaterial({ color: 0xdcd5c8, roughness: 0.85, metalness: 0.0, envMapIntensity: 0.5 });
@@ -393,15 +397,18 @@ function onModel(model){
   sc.left = -maxDim; sc.right = maxDim; sc.top = maxDim; sc.bottom = -maxDim;
   sc.near = maxDim * 0.05; sc.far = maxDim * 12; sc.updateProjectionMatrix();
 
-  worldOctree = new Octree();
-  worldOctree.fromGraphNode(model);
-  if (IS_OBJ){   // OBJ models have no floor -> add a ground plane (shadow catcher + walkable)
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(maxDim * 6, maxDim * 6),
-      new THREE.MeshStandardMaterial({ color: 0xbcb3a3, roughness: 1, envMapIntensity: 0.5 }));
-    ground.rotation.x = -Math.PI / 2; ground.position.y = floorY; ground.receiveShadow = true;
-    scene.add(ground);
-    worldOctree.fromGraphNode(ground);
+  // heavy models on phones: skip the octree (building it can freeze a phone) -> simple ground walk
+  if (!(MOBILE && _tri > 60000)){
+    worldOctree = new Octree();
+    worldOctree.fromGraphNode(model);
+    if (IS_OBJ){   // OBJ models have no floor -> add a ground plane (shadow catcher + walkable)
+      const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(maxDim * 6, maxDim * 6),
+        new THREE.MeshStandardMaterial({ color: 0xbcb3a3, roughness: 1, envMapIntensity: 0.5 }));
+      ground.rotation.x = -Math.PI / 2; ground.position.y = floorY; ground.receiveShadow = true;
+      scene.add(ground);
+      worldOctree.fromGraphNode(ground);
+    }
   }
   playerCapsule = new Capsule(
     new THREE.Vector3(center.x, floorY + R, center.z),
@@ -493,19 +500,28 @@ function animate(){
       const accel = (playerOnFloor ? ACCEL_GROUND : ACCEL_AIR) * run;
       if (mf) playerVelocity.addScaledVector(forwardVec(), accel*sub*mf);
       if (ms) playerVelocity.addScaledVector(sideVec(),    accel*sub*ms);
-      let damp = Math.exp(-4 * sub) - 1;             // friction
-      if (!playerOnFloor){ playerVelocity.y -= GRAVITY * sub; damp *= 0.1; }
-      playerVelocity.addScaledVector(playerVelocity, damp);
-      playerCapsule.translate(_step.copy(playerVelocity).multiplyScalar(sub));
-      const hit = worldOctree.capsuleIntersect(playerCapsule);   // collide with the model
-      playerOnFloor = false;
-      if (hit){
-        playerOnFloor = hit.normal.y > 0;
-        if (!playerOnFloor) playerVelocity.addScaledVector(hit.normal, -hit.normal.dot(playerVelocity));
-        playerCapsule.translate(hit.normal.multiplyScalar(hit.depth));   // push out / slide
+      if (worldOctree){
+        let damp = Math.exp(-4 * sub) - 1;             // friction
+        if (!playerOnFloor){ playerVelocity.y -= GRAVITY * sub; damp *= 0.1; }
+        playerVelocity.addScaledVector(playerVelocity, damp);
+        playerCapsule.translate(_step.copy(playerVelocity).multiplyScalar(sub));
+        const hit = worldOctree.capsuleIntersect(playerCapsule);   // collide with the model
+        playerOnFloor = false;
+        if (hit){
+          playerOnFloor = hit.normal.y > 0;
+          if (!playerOnFloor) playerVelocity.addScaledVector(hit.normal, -hit.normal.dot(playerVelocity));
+          playerCapsule.translate(hit.normal.multiplyScalar(hit.depth));   // push out / slide
+        }
+      } else {
+        // no-collision fallback (heavy model on phone): flat-floor walk, no walls
+        playerVelocity.y = 0;
+        playerVelocity.addScaledVector(playerVelocity, Math.exp(-4 * sub) - 1);
+        playerCapsule.translate(_step.copy(playerVelocity).multiplyScalar(sub));
+        playerCapsule.start.y = floorY + R; playerCapsule.end.y = floorY + eyeHeight;
+        playerOnFloor = true;
       }
     }
-    if (playerCapsule.end.y < floorY - H * 4) resetPlayer();   // fell out of world -> respawn
+    if (worldOctree && playerCapsule.end.y < floorY - H * 4) resetPlayer();   // fell out -> respawn
     camera.position.copy(playerCapsule.end);          // eyes at the top of the capsule
   } else if (flying){
     flyT = Math.min(1, flyT + dt / 1.2);
