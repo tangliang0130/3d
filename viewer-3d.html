@@ -60,6 +60,12 @@
     font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:var(--beige);
     background:rgba(20,16,12,.6);border:1px solid rgba(232,223,211,.32);padding:.7rem 1rem;border-radius:3px}
   body.mwalk .joystick,body.mwalk .exitwalk,body.mwalk .crosshair{display:block}
+  .hctl{display:none;position:fixed;top:1rem;left:50%;transform:translateX(-50%);z-index:8;align-items:center;gap:.5rem;
+    background:rgba(20,16,12,.62);border:1px solid rgba(232,223,211,.28);border-radius:5px;padding:.35rem .5rem;backdrop-filter:blur(8px)}
+  .hctl button{width:32px;height:32px;border:0;border-radius:4px;background:rgba(232,223,211,.14);color:var(--beige);font-size:1.15rem;line-height:1;cursor:pointer}
+  .hctl button:active{background:rgba(156,122,79,.55)}
+  .hctl span{font-size:.66rem;letter-spacing:.1em;color:var(--beige);min-width:92px;text-align:center}
+  body.walk .hctl{display:flex}
   .rotate{display:none;position:fixed;inset:0;z-index:50;background:var(--char);flex-direction:column;align-items:center;justify-content:center;gap:1.3rem;text-align:center;padding:2rem}
   .rotate .ph{width:62px;height:62px;animation:rot 2.4s var(--ease) infinite}
   .rotate .ph svg{width:100%;height:100%;fill:none;stroke:var(--beige);stroke-width:2;stroke-linejoin:round}
@@ -106,9 +112,10 @@
   <div class="hint">拖动 · 旋转<br>滚轮 · 缩放<br>右键 · 平移</div>
   <button class="btn" id="walkBtn">进入漫游 · Walk (WASD)</button>
   <div class="crosshair"></div>
-  <div class="fphint">W·A·S·D 移动　·　鼠标 看　·　Shift 跑　·　1/2/3 昼夜　·　ESC 退出</div>
+  <div class="fphint">W·A·S·D 移动　·　鼠标 看　·　Shift 跑　·　[ ] 视高　·　1/2/3 昼夜　·　ESC 退出</div>
   <div class="joystick" id="joy"><div class="joy-thumb" id="joyThumb"></div></div>
   <button class="exitwalk" id="exitWalk">退出漫游</button>
+  <div class="hctl" id="hctl"><button data-h="-1">−</button><span id="hval">视高 1.60m</span><button data-h="1">+</button></div>
   <div class="rotate"><div class="ph"><svg viewBox="0 0 44 44"><rect x="14" y="5" width="16" height="30" rx="3"/><line x1="22" y1="31" x2="22" y2="31"/></svg></div><div class="t">横屏体验更佳</div><div class="s">旋转手机 · Rotate to landscape</div></div>
   <div class="loader" id="loader">
     <div class="ring"></div>
@@ -128,9 +135,13 @@ import { Capsule } from 'three/addons/math/Capsule.js';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 
-const MODELS = { house: 'assets/house/house.obj', castle: 'assets/sponza/Sponza.gltf' };
+const MODELS = {
+  house:  { url: 'assets/house/house.obj',    scale: 0.02   },   // normalize arbitrary units -> meters
+  castle: { url: 'assets/sponza/Sponza.gltf', scale: 0.0085 }    // real-scale models exported in meters use scale: 1
+};
 const _mp = new URLSearchParams(location.search).get('model');
-const MODEL_URL = MODELS[_mp] || MODELS.house;
+const _m = MODELS[_mp] || MODELS.house;
+const MODEL_URL = _m.url, MODEL_SCALE = _m.scale;
 const IS_OBJ = MODEL_URL.toLowerCase().endsWith('.obj');
 { const lbl = { house: 'Modern House', castle: 'Sponza Palace' }[_mp] || 'Modern House';
   const el = document.querySelector('.title .eyebrow'); if (el) el.textContent = 'Live Model · ' + lbl; }
@@ -258,7 +269,7 @@ const keys = {};
 let fpActive = false;
 const fpStart = new THREE.Vector3();
 let worldOctree = null, playerCapsule = null, playerOnFloor = false;
-let floorY = 0, R = 0.4, H = 1.8, GRAVITY = 30, ACCEL_GROUND = 40, ACCEL_AIR = 12;
+let floorY = 0, R = 0.3, H = 1.7, GRAVITY = 30, ACCEL_GROUND = 40, ACCEL_AIR = 12, eyeHeight = 1.6;
 const STEPS = 5;
 const playerVelocity = new THREE.Vector3();
 const _dir = new THREE.Vector3(), _step = new THREE.Vector3();
@@ -267,9 +278,15 @@ const sideVec    = () => { camera.getWorldDirection(_dir); _dir.y = 0; _dir.norm
 function resetPlayer(){
   if(!playerCapsule) return;
   playerCapsule.start.set(fpStart.x, floorY + R, fpStart.z);
-  playerCapsule.end.set(fpStart.x, floorY + H - R, fpStart.z);
+  playerCapsule.end.set(fpStart.x, floorY + eyeHeight, fpStart.z);
   playerVelocity.set(0,0,0); playerOnFloor = false;
 }
+function applyHeight(){ if(!playerCapsule) return; const feetY = playerCapsule.start.y - R; playerCapsule.end.y = feetY + eyeHeight; }
+const hval = document.getElementById('hval');
+function setHeight(v){ eyeHeight = Math.max(1.2, Math.min(2.2, Math.round(v*100)/100)); if(hval) hval.textContent = '视高 ' + eyeHeight.toFixed(2) + 'm'; applyHeight(); }
+document.querySelectorAll('#hctl button').forEach(b => b.addEventListener('click', () => setHeight(eyeHeight + 0.05 * (+b.dataset.h))));
+addEventListener('keydown', e => { if(e.code==='BracketRight') setHeight(eyeHeight+0.05); else if(e.code==='BracketLeft') setHeight(eyeHeight-0.05); });
+setHeight(eyeHeight);
 addEventListener('keydown', e => { keys[e.code] = true; });
 addEventListener('keyup',   e => { keys[e.code] = false; });
 // touch devices (phones/tablets) have no Pointer Lock -> use on-screen joystick + drag-to-look
@@ -343,6 +360,7 @@ manager.onLoad = () => { loaderEl.classList.add('gone'); };
 manager.onError = () => showError();
 
 function onModel(model){
+  model.scale.setScalar(MODEL_SCALE);   // normalize to real-world meters
   model.traverse(o => {
     if (o.isMesh){
       o.castShadow = true; o.receiveShadow = true;
@@ -353,6 +371,7 @@ function onModel(model){
     }
   });
   scene.add(model);
+  model.updateMatrixWorld(true);
 
   // frame the camera to the model's bounding box
   const box = new THREE.Box3().setFromObject(model);
@@ -363,8 +382,8 @@ function onModel(model){
   // collision setup: build an octree over the model + a player capsule
   modelScale = maxDim;
   floorY = box.min.y;
-  R = Math.max(0.001, maxDim * 0.012);   // capsule radius, scaled to model
-  H = maxDim * 0.06;                      // total player height
+  R = 0.3;          // human shoulder radius (meters)
+  H = eyeHeight;    // standing eye height (adjustable, meters)
   GRAVITY = maxDim; ACCEL_GROUND = maxDim * 0.9; ACCEL_AIR = maxDim * 0.3;
   fpStart.set(center.x, floorY, center.z);
 
@@ -386,7 +405,7 @@ function onModel(model){
   }
   playerCapsule = new Capsule(
     new THREE.Vector3(center.x, floorY + R, center.z),
-    new THREE.Vector3(center.x, floorY + H - R, center.z),
+    new THREE.Vector3(center.x, floorY + eyeHeight, center.z),
     R
   );
 
