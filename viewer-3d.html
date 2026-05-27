@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Real-time 3D — Walk the Model</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -60,6 +60,13 @@
     font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:var(--beige);
     background:rgba(20,16,12,.6);border:1px solid rgba(232,223,211,.32);padding:.7rem 1rem;border-radius:3px}
   body.mwalk .joystick,body.mwalk .exitwalk,body.mwalk .crosshair{display:block}
+  .rotate{display:none;position:fixed;inset:0;z-index:50;background:var(--char);flex-direction:column;align-items:center;justify-content:center;gap:1.3rem;text-align:center;padding:2rem}
+  .rotate .ph{width:62px;height:62px;animation:rot 2.4s var(--ease) infinite}
+  .rotate .ph svg{width:100%;height:100%;fill:none;stroke:var(--beige);stroke-width:2;stroke-linejoin:round}
+  .rotate .t{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:1.7rem}
+  .rotate .s{font-size:.68rem;letter-spacing:.24em;text-transform:uppercase;opacity:.6}
+  @keyframes rot{0%,28%{transform:rotate(0)}72%,100%{transform:rotate(-90deg)}}
+  @media (max-width:820px) and (orientation:portrait){ .rotate{display:flex} }
   @media (max-width: 680px){
     .badge,.title,.hint{display:none}
     .views{top:.6rem;left:50%;transform:translateX(-50%);gap:.3rem}
@@ -102,6 +109,7 @@
   <div class="fphint">W·A·S·D 移动　·　鼠标 看　·　Shift 跑　·　1/2/3 昼夜　·　ESC 退出</div>
   <div class="joystick" id="joy"><div class="joy-thumb" id="joyThumb"></div></div>
   <button class="exitwalk" id="exitWalk">退出漫游</button>
+  <div class="rotate"><div class="ph"><svg viewBox="0 0 44 44"><rect x="14" y="5" width="16" height="30" rx="3"/><line x1="22" y1="31" x2="22" y2="31"/></svg></div><div class="t">横屏体验更佳</div><div class="s">旋转手机 · Rotate to landscape</div></div>
   <div class="loader" id="loader">
     <div class="ring"></div>
     <div class="pct" id="pct">0%</div>
